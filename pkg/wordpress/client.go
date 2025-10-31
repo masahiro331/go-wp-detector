@@ -57,21 +57,52 @@ type QueryInfo struct {
 	Results int `json:"results"`
 }
 
+// FlexibleString is a type that can unmarshal from both string and bool
+type FlexibleString string
+
+// UnmarshalJSON implements custom unmarshaling for FlexibleString
+func (fs *FlexibleString) UnmarshalJSON(data []byte) error {
+	// Try to unmarshal as string first
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		*fs = FlexibleString(s)
+		return nil
+	}
+
+	// If that fails, try as bool
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		if b {
+			*fs = "true"
+		} else {
+			*fs = ""
+		}
+		return nil
+	}
+
+	return fmt.Errorf("cannot unmarshal %s into FlexibleString", string(data))
+}
+
+// String returns the string value
+func (fs FlexibleString) String() string {
+	return string(fs)
+}
+
 // PluginInfo contains detailed information about a WordPress plugin
 type PluginInfo struct {
-	Name           string  `json:"name"`
-	Slug           string  `json:"slug"`
-	Version        string  `json:"version"`
-	DownloadLink   string  `json:"download_link"`
-	ActiveInstalls int     `json:"active_installs"`
-	Downloaded     int     `json:"downloaded"`
-	Rating         float64 `json:"rating"`
-	NumRatings     int     `json:"num_ratings"`
-	Homepage       string  `json:"homepage"`
-	ShortDesc      string  `json:"short_description"`
-	Requires       string  `json:"requires"`
-	Tested         string  `json:"tested"`
-	RequiresPHP    string  `json:"requires_php"`
+	Name           string         `json:"name"`
+	Slug           string         `json:"slug"`
+	Version        string         `json:"version"`
+	DownloadLink   string         `json:"download_link"`
+	ActiveInstalls int            `json:"active_installs"`
+	Downloaded     int            `json:"downloaded"`
+	Rating         float64        `json:"rating"`
+	NumRatings     int            `json:"num_ratings"`
+	Homepage       string         `json:"homepage"`
+	ShortDesc      string         `json:"short_description"`
+	Requires       FlexibleString `json:"requires"`
+	Tested         FlexibleString `json:"tested"`
+	RequiresPHP    FlexibleString `json:"requires_php"`
 }
 
 // QueryPluginsResponse is the response from the query_plugins API
