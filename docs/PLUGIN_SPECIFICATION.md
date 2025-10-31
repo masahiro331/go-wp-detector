@@ -319,6 +319,107 @@ Detection:
 - [ ] Return structured plugin metadata
 - [ ] Cache results for performance
 
+## Version Information Beyond Headers
+
+### Common Pattern: Version Constants
+
+While the `Version` header in the plugin file is the **primary and official source**, many plugins also define version constants in PHP for programmatic access. This is a **best practice but not a requirement**.
+
+### Why Plugins Define Version Constants
+
+1. **Programmatic Access**: Code can access version without parsing file headers
+2. **Performance**: Faster than calling `get_plugin_data()` repeatedly
+3. **Consistency**: Single source of truth for version-dependent code
+4. **Database Migrations**: Track installed version vs current version
+
+### Real-World Examples
+
+#### Contact Form 7
+```php
+/**
+ * Version: 6.1.3
+ */
+define( 'WPCF7_VERSION', '6.1.3' );  // Line 15
+```
+
+#### Elementor
+```php
+/**
+ * Version: 3.32.5
+ */
+define( 'ELEMENTOR_VERSION', '3.32.5' );  // Line 31
+```
+
+#### Jetpack
+```php
+/**
+ * Version: 15.1.1
+ */
+if ( ! defined( 'JETPACK__VERSION' ) ) {
+    define( 'JETPACK__VERSION', '15.1.1' );  // Line 41
+}
+```
+
+#### Wordfence
+```php
+/**
+ * Version: 8.1.0
+ */
+define('WORDFENCE_VERSION', '8.1.0');  // Line 41
+```
+
+### Naming Conventions for Version Constants
+
+Common patterns observed:
+
+| Pattern | Examples | Frequency |
+|---------|----------|-----------|
+| `PLUGINNAME_VERSION` | `WPCF7_VERSION`, `ELEMENTOR_VERSION` | Most common |
+| `PLUGINNAME__VERSION` | `JETPACK__VERSION` | Double underscore variant |
+| `PLUGINNAME_VER` | Rare | Less common |
+| Mixed case | `WooCommerceVersion` | Very rare |
+
+### Location of Version Constants
+
+Version constants are typically defined:
+- **Immediately after** the plugin header comment (lines 15-50)
+- **Before** any includes or class definitions
+- **Within the first 100 lines** of the main plugin file
+
+### Detection Strategy
+
+For the detector implementation:
+
+1. **Primary Source**: Always extract version from plugin header
+   - Header `Version:` field is the official WordPress specification
+   - This is what WordPress uses internally
+
+2. **Fallback/Validation**: Optionally check for version constant
+   - If header version is missing or malformed
+   - For cross-validation to detect discrepancies
+   - Useful for detecting potential bugs in plugin code
+
+3. **Detection Pattern** for version constants:
+```regex
+define\s*\(\s*['"](\w+_VERSION|VERSION)['"]?\s*,\s*['"]([0-9.]+(?:-[a-zA-Z0-9]+)?)['"]\s*\)
+```
+
+### Important Notes
+
+- **Header is authoritative**: WordPress only reads the header version
+- **Constants may differ**: Some plugins have mismatched header/constant versions (bugs)
+- **Not all plugins use constants**: Smaller plugins may skip this pattern
+- **Some use class properties**: Object-oriented plugins may use `$this->version` instead
+
+### Recommendation for Detector
+
+**For go-wp-detector implementation:**
+
+1. ✅ **Required**: Extract version from plugin header
+2. ⚠️ **Optional**: Extract version from constant for validation
+3. ⚠️ **Warn on mismatch**: If header and constant versions differ
+4. ❌ **Don't rely solely on constants**: Some plugins don't define them
+
 ## References
 
 - [WordPress Plugin Handbook - Header Requirements](https://developer.wordpress.org/plugins/plugin-basics/header-requirements/)
